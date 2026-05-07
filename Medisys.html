@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediSys — Medicine Inventory Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117;
+  --sidebar: #0a0e14;
+  --panel: #151b23;
+  --panel2: #1c2430;
+  --border: #21293a;
+  --border2: #2a3548;
+  --text: #e8edf3;
+  --text2: #8b95a3;
+  --text3: #5a6475;
+  --accent: #0ea5e9;
+  --accent-dim: rgba(14,165,233,.12);
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,.12);
+  --yellow: #f59e0b;
+  --yellow-dim: rgba(245,158,11,.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,.12);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,.12);
+  --mono: 'JetBrains Mono', monospace;
+  --radius: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 230px; flex-shrink: 0;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 50;
+}
+.sidebar-logo {
+  padding: 1.4rem 1.4rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  display: flex; align-items: center; gap: .6rem;
+  margin-bottom: .2rem;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+}
+.logo-name {
+  font-size: 1.05rem; font-weight: 700;
+  letter-spacing: -.01em;
+}
+.logo-sub { font-size: .65rem; color: var(--text3); font-family: var(--mono); letter-spacing: .06em; }
+
+.nav-section { padding: .8rem .75rem .3rem; }
+.nav-label {
+  font-size: .6rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text3); padding: 0 .5rem;
+  margin-bottom: .35rem;
+}
+.nav-item {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .55rem .8rem;
+  border-radius: 7px; cursor: pointer;
+  color: var(--text2); font-size: .82rem; font-weight: 500;
+  transition: all .15s;
+  position: relative;
+}
+.nav-item:hover { background: var(--panel); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--red);
+  color: #fff;
+  font-size: .58rem; font-weight: 700;
+  border-radius: 10px; padding: .05rem .38rem;
+  min-width: 16px; text-align: center;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem 1.2rem;
+  border-top: 1px solid var(--border);
+}
+.api-key-area label {
+  font-size: .65rem; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text3); display: block; margin-bottom: .4rem;
+}
+.api-key-area input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: .45rem .6rem;
+  color: var(--text); font-size: .72rem;
+  font-family: var(--mono);
+  outline: none;
+  transition: border-color .15s;
+}
+.api-key-area input:focus { border-color: var(--accent); }
+.api-status {
+  font-size: .65rem; color: var(--text3);
+  margin-top: .35rem; font-family: var(--mono);
+}
+.api-status.ok { color: var(--green); }
+
+/* ── MAIN ── */
+.main {
+  margin-left: 230px;
+  flex: 1;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+.topbar {
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--border);
+  padding: .85rem 1.8rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar-title { font-size: 1rem; font-weight: 600; }
+.topbar-sub { font-size: .72rem; color: var(--text3); margin-top: .1rem; }
+.topbar-right { display: flex; align-items: center; gap: .8rem; }
+.topbar-time {
+  font-family: var(--mono); font-size: .72rem;
+  color: var(--text3);
+}
+.btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .5rem 1rem; border-radius: 7px;
+  font-size: .78rem; font-weight: 600;
+  cursor: pointer; border: none; transition: all .15s;
+  font-family: 'Sora', sans-serif;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #38bdf8; }
+.btn-secondary {
+  background: var(--panel2); color: var(--text2);
+  border: 1px solid var(--border2);
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--accent); }
+.btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,.2); }
+.btn-danger:hover { background: rgba(239,68,68,.2); }
+.btn-sm { padding: .3rem .65rem; font-size: .72rem; }
+.btn-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,.2); }
+.btn-green:hover { background: rgba(16,185,129,.25); }
+
+.content { padding: 1.6rem 1.8rem; flex: 1; }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── DASHBOARD ── */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1rem; margin-bottom: 1.4rem;
+}
+.kpi-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.3rem;
+  position: relative; overflow: hidden;
+  transition: border-color .2s;
+}
+.kpi-card:hover { border-color: var(--border2); }
+.kpi-label { font-size: .7rem; font-weight: 500; color: var(--text3); letter-spacing: .04em; text-transform: uppercase; margin-bottom: .5rem; }
+.kpi-value { font-size: 1.9rem; font-weight: 700; line-height: 1; margin-bottom: .3rem; }
+.kpi-sub { font-size: .7rem; color: var(--text3); }
+.kpi-icon {
+  position: absolute; right: 1rem; top: 50%;
+  transform: translateY(-50%);
+  font-size: 2rem; opacity: .15;
+}
+.kpi-card.blue .kpi-value { color: var(--accent); }
+.kpi-card.blue .kpi-icon { color: var(--accent); opacity: .2; }
+.kpi-card.green .kpi-value { color: var(--green); }
+.kpi-card.green .kpi-icon { color: var(--green); opacity: .2; }
+.kpi-card.yellow .kpi-value { color: var(--yellow); }
+.kpi-card.yellow .kpi-icon { color: var(--yellow); opacity: .2; }
+.kpi-card.red .kpi-value { color: var(--red); }
+.kpi-card.red .kpi-icon { color: var(--red); opacity: .2; }
+
+.dashboard-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem; margin-bottom: 1rem;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.panel-head {
+  padding: .9rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title { font-size: .82rem; font-weight: 600; }
+.panel-body { padding: 1rem 1.2rem; }
+.panel.wide { grid-column: span 2; }
+
+/* Alerts */
+.alert-item {
+  display: flex; align-items: flex-start; gap: .75rem;
+  padding: .65rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.alert-item:last-child { border-bottom: none; padding-bottom: 0; }
+.alert-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: .3rem;
+}
+.alert-dot.red { background: var(--red); }
+.alert-dot.yellow { background: var(--yellow); }
+.alert-text { font-size: .8rem; color: var(--text2); line-height: 1.5; }
+.alert-text strong { color: var(--text); }
+.alert-time { font-size: .68rem; color: var(--text3); font-family: var(--mono); }
+.empty-state {
+  text-align: center; padding: 1.5rem;
+  color: var(--text3); font-size: .8rem;
+}
+.empty-state .empty-icon { font-size: 2rem; margin-bottom: .5rem; opacity: .4; }
+
+/* Recent dispense */
+.recent-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .55rem 0; border-bottom: 1px solid var(--border);
+}
+.recent-row:last-child { border-bottom: none; }
+.recent-name { font-size: .8rem; font-weight: 500; }
+.recent-meta { font-size: .7rem; color: var(--text3); margin-top: .1rem; }
+.pill {
+  font-size: .65rem; font-weight: 600; padding: .2rem .55rem;
+  border-radius: 20px; font-family: var(--mono);
+}
+.pill-red { background: var(--red-dim); color: var(--red); }
+.pill-yellow { background: var(--yellow-dim); color: var(--yellow); }
+.pill-green { background: var(--green-dim); color: var(--green); }
+.pill-blue { background: var(--accent-dim); color: var(--accent); }
+.pill-purple { background: var(--purple-dim); color: var(--purple); }
+
+/* chart canvas */
+.chart-wrap { padding: .5rem; }
+canvas { max-height: 220px; }
+
+/* ── INVENTORY TABLE ── */
+.toolbar {
+  display: flex; align-items: center; gap: .8rem;
+  margin-bottom: 1rem; flex-wrap: wrap;
+}
+.search-box {
+  flex: 1; min-width: 200px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 7px; padding: .5rem .9rem;
+  color: var(--text); font-size: .82rem; font-family: 'Sora', sans-serif;
+  outline: none; transition: border-color .15s;
+}
+.search-box:focus { border-color: var(--accent); }
+.search-box::placeholder { color: var(--text3); }
+select.filter-select {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 7px; padding: .5rem .8rem;
+  color: var(--text2); font-size: .78rem;
+  font-family: 'Sora', sans-serif; outline: none;
+  cursor: pointer;
+}
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; padding: .6rem 1rem;
+  font-size: .68rem; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+tbody tr:hover { background: var(--panel2); }
+tbody tr:last-child { border-bottom: none; }
+tbody td {
+  padding: .7rem 1rem; font-size: .82rem;
+  vertical-align: middle;
+}
+.td-name { font-weight: 600; color: var(--text); }
+.td-category { color: var(--text3); font-size: .74rem; }
+.stock-bar {
+  width: 80px; height: 5px;
+  background: var(--border2); border-radius: 3px;
+  overflow: hidden; margin-top: 3px;
+}
+.stock-bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+.actions { display: flex; gap: .4rem; }
+.expiry-warn { color: var(--red); font-weight: 500; }
+.expiry-ok { color: var(--text2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  width: 520px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+  animation: modalIn .2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-head {
+  padding: 1.3rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: .95rem; font-weight: 600; }
+.modal-close {
+  background: none; border: none;
+  color: var(--text3); font-size: 1.2rem;
+  cursor: pointer; padding: .2rem;
+  transition: color .15s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 1.4rem 1.5rem; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: .4rem; }
+.form-group.full { grid-column: span 2; }
+.form-label {
+  font-size: .7rem; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text3);
+}
+.form-input {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: .6rem .8rem;
+  color: var(--text); font-size: .85rem;
+  font-family: 'Sora', sans-serif; outline: none;
+  transition: border-color .15s;
+}
+.form-input:focus { border-color: var(--accent); }
+select.form-input { cursor: pointer; }
+.modal-foot {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex; gap: .6rem; justify-content: flex-end;
+}
+
+/* ── DISPENSE PAGE ── */
+.dispense-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 1.2rem; }
+
+/* ── AI PAGE ── */
+.ai-layout { display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.2rem; align-items: start; }
+.ai-analysis-btn {
+  width: 100%; padding: .8rem;
+  background: linear-gradient(135deg, var(--accent), #06b6d4);
+  border: none; border-radius: 8px;
+  color: #fff; font-size: .88rem; font-weight: 600;
+  cursor: pointer; font-family: 'Sora', sans-serif;
+  transition: opacity .15s;
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+}
+.ai-analysis-btn:hover { opacity: .88; }
+.ai-analysis-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ai-option-btn {
+  width: 100%; text-align: left;
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 8px; padding: .7rem 1rem;
+  color: var(--text2); font-size: .8rem;
+  cursor: pointer; font-family: 'Sora', sans-serif;
+  transition: all .15s; margin-bottom: .5rem;
+  display: flex; align-items: center; gap: .6rem;
+}
+.ai-option-btn:hover { border-color: var(--accent); color: var(--text); }
+.ai-chat-area {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 420px;
+  display: flex; flex-direction: column;
+}
+.ai-chat-messages {
+  flex: 1; padding: 1.2rem;
+  display: flex; flex-direction: column; gap: 1rem;
+  overflow-y: auto; max-height: 480px;
+}
+.ai-msg {
+  display: flex; gap: .75rem; align-items: flex-start;
+}
+.ai-msg.user { flex-direction: row-reverse; }
+.ai-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem;
+}
+.ai-avatar.bot { background: linear-gradient(135deg,#0ea5e9,#06b6d4); }
+.ai-avatar.user { background: var(--panel2); border: 1px solid var(--border2); }
+.ai-bubble {
+  max-width: 80%; padding: .75rem 1rem;
+  border-radius: 10px; font-size: .82rem;
+  line-height: 1.65;
+}
+.ai-bubble.bot {
+  background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text);
+}
+.ai-bubble.user {
+  background: var(--accent-dim); border: 1px solid rgba(14,165,233,.25);
+  color: var(--text);
+}
+.ai-typing {
+  display: flex; gap: 4px; align-items: center; padding: .2rem 0;
+}
+.ai-typing span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: typing 1.2s infinite;
+}
+.ai-typing span:nth-child(2) { animation-delay: .2s; }
+.ai-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes typing { 0%,80%,100%{transform:scale(.7);opacity:.4} 40%{transform:scale(1);opacity:1} }
+.ai-input-row {
+  padding: .8rem 1rem;
+  border-top: 1px solid var(--border);
+  display: flex; gap: .6rem;
+}
+.ai-input {
+  flex: 1; background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px; padding: .55rem .9rem;
+  color: var(--text); font-size: .82rem;
+  font-family: 'Sora', sans-serif; outline: none;
+}
+.ai-input:focus { border-color: var(--accent); }
+
+/* ── HISTORY ── */
+.history-table-wrap { overflow-x: auto; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── TOAST ── */
+.toast-container {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  z-index: 999; display: flex; flex-direction: column; gap: .5rem;
+}
+.toast {
+  background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: 9px; padding: .8rem 1.2rem;
+  font-size: .8rem; color: var(--text);
+  display: flex; align-items: center; gap: .6rem;
+  animation: toastIn .25s ease;
+  max-width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+@keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid var(--accent); }
+
+/* ── MISC ── */
+.page-header { margin-bottom: 1.2rem; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: .8rem; }
+.page-title { font-size: 1.15rem; font-weight: 700; }
+.page-sub { font-size: .78rem; color: var(--text3); margin-top: .15rem; }
+.section-gap { margin-top: 1rem; }
+hr.divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+.text-sm { font-size: .78rem; color: var(--text3); }
+.mt-1 { margin-top: .5rem; }
+
+/* category colors */
+.cat-antibiotics { color: #f472b6; }
+.cat-vaccines { color: #818cf8; }
+.cat-maintenance { color: #34d399; }
+.cat-analgesics { color: #fb923c; }
+.cat-vitamins { color: #facc15; }
+.cat-others { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">💊</div>
+      <span class="logo-name">MediSys</span>
+    </div>
+    <div class="logo-sub">PH HEALTH CENTER v1.0</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('inventory')">
+      <span class="nav-icon">📦</span> Inventory
+      <span class="nav-badge" id="badge-inventory" style="display:none"></span>
+    </div>
+    <div class="nav-item" onclick="showPage('dispense')">
+      <span class="nav-icon">💉</span> Dispense
+    </div>
+    <div class="nav-item" onclick="showPage('history')">
+      <span class="nav-icon">📋</span> History
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Intelligence</div>
+    <div class="nav-item" onclick="showPage('ai')">
+      <span class="nav-icon">🤖</span> AI Advisor
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="api-key-area">
+      <label>Anthropic API Key</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." oninput="checkApiKey()"/>
+      <div class="api-status" id="api-status">⬡ Not set — AI features disabled</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-sub">Philippine Public Health Center Management System</div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-time" id="live-time"></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ─────────── DASHBOARD ─────────── -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Medicines</div>
+          <div class="kpi-value" id="kpi-total">0</div>
+          <div class="kpi-sub">items in formulary</div>
+          <div class="kpi-icon">💊</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Adequate Stock</div>
+          <div class="kpi-value" id="kpi-adequate">0</div>
+          <div class="kpi-sub">items above minimum</div>
+          <div class="kpi-icon">✅</div>
+        </div>
+        <div class="kpi-card yellow">
+          <div class="kpi-label">Low Stock</div>
+          <div class="kpi-value" id="kpi-low">0</div>
+          <div class="kpi-sub">items need restocking</div>
+          <div class="kpi-icon">⚠️</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Expiring Soon</div>
+          <div class="kpi-value" id="kpi-expiring">0</div>
+          <div class="kpi-sub">within 30 days</div>
+          <div class="kpi-icon">⏰</div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Stock Chart -->
+        <div class="panel wide">
+          <div class="panel-head">
+            <span class="panel-title">📈 Stock Levels Overview</span>
+            <span class="text-sm" id="chart-updated"></span>
+          </div>
+          <div class="panel-body chart-wrap">
+            <canvas id="stockChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">🚨 Active Alerts</span>
+            <span class="pill pill-red" id="alert-count-badge">0</span>
+          </div>
+          <div class="panel-body" id="alerts-panel" style="max-height:240px;overflow-y:auto;padding:.6rem 1rem;">
+            <div class="empty-state"><div class="empty-icon">✅</div>No active alerts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="grid-template-columns:1fr 1fr;">
+        <!-- Category Chart -->
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">🗂 Stock by Category</span></div>
+          <div class="panel-body chart-wrap">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+        <!-- Recent Dispenses -->
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">💉 Recent Dispenses</span></div>
+          <div class="panel-body" id="recent-dispenses" style="max-height:220px;overflow-y:auto;padding:.5rem 1rem;">
+            <div class="empty-state"><div class="empty-icon">📋</div>No dispenses yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── INVENTORY ─────────── -->
+    <div class="page" id="page-inventory">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Medicine Inventory</div>
+          <div class="page-sub">Manage stock levels, expiry dates, and supplier information</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddModal()">＋ Add Medicine</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head" style="padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem;">
+          <div class="toolbar" style="margin:0;flex:1;min-width:0;">
+            <input class="search-box" id="inv-search" placeholder="🔍 Search by name, category, supplier..." oninput="renderInventory()"/>
+            <select class="filter-select" id="inv-filter-cat" onchange="renderInventory()">
+              <option value="">All Categories</option>
+              <option>Antibiotics</option>
+              <option>Vaccines</option>
+              <option>Maintenance</option>
+              <option>Analgesics</option>
+              <option>Vitamins</option>
+              <option>Others</option>
+            </select>
+            <select class="filter-select" id="inv-filter-stock" onchange="renderInventory()">
+              <option value="">All Stock</option>
+              <option value="low">Low Stock</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="ok">Adequate</option>
+            </select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Category</th>
+                <th>Stock / Min</th>
+                <th>Unit</th>
+                <th>Expiry Date</th>
+                <th>Supplier</th>
+                <th>Unit Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inv-tbody">
+              <tr><td colspan="9" class="empty-state">No medicines found. Add your first medicine.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── DISPENSE ─────────── -->
+    <div class="page" id="page-dispense">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dispense Medicine</div>
+          <div class="page-sub">Record outgoing medicines to patients</div>
+        </div>
+      </div>
+      <div class="dispense-layout">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">📋 Dispensing Form</span></div>
+          <div class="panel-body">
+            <div class="form-group" style="margin-bottom:.9rem;">
+              <label class="form-label">Select Medicine *</label>
+              <select class="form-input" id="disp-medicine" onchange="updateDispStock()">
+                <option value="">-- Select Medicine --</option>
+              </select>
+            </div>
+            <div id="disp-stock-info" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:.7rem 1rem;margin-bottom:.9rem;font-size:.8rem;">
+              <div style="display:flex;gap:2rem;">
+                <div><span class="text-sm">Current Stock</span><div style="font-size:1.1rem;font-weight:700;color:var(--accent)" id="disp-cur-stock">—</div></div>
+                <div><span class="text-sm">Min. Stock</span><div style="font-size:1.1rem;font-weight:700;color:var(--text3)" id="disp-min-stock">—</div></div>
+                <div><span class="text-sm">Expiry</span><div style="font-size:1rem;font-weight:600;" id="disp-expiry">—</div></div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom:.9rem;">
+              <label class="form-label">Quantity to Dispense *</label>
+              <input class="form-input" type="number" id="disp-qty" min="1" placeholder="e.g. 10"/>
+            </div>
+            <div class="form-group" style="margin-bottom:.9rem;">
+              <label class="form-label">Dispensed To (Patient / Ward) *</label>
+              <input class="form-input" type="text" id="disp-to" placeholder="e.g. Juan Dela Cruz / OPD Ward"/>
+            </div>
+            <div class="form-group" style="margin-bottom:.9rem;">
+              <label class="form-label">Dispensed By (Pharmacist)</label>
+              <input class="form-input" type="text" id="disp-by" placeholder="e.g. Pharmacist Santos"/>
+            </div>
+            <div class="form-group" style="margin-bottom:1.2rem;">
+              <label class="form-label">Notes</label>
+              <input class="form-input" type="text" id="disp-notes" placeholder="Optional notes..."/>
+            </div>
+            <button class="btn btn-primary" style="width:100%;" onclick="submitDispense()">💉 Record Dispense</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">⚡ Today's Dispenses</span></div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Medicine</th>
+                  <th>Qty</th>
+                  <th>Dispensed To</th>
+                  <th>By</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="today-dispenses">
+                <tr><td colspan="5" class="empty-state">No dispenses today</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── HISTORY ─────────── -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dispensing History</div>
+          <div class="page-sub">Full audit log of all medicine dispenses</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="panel">
+        <div class="panel-head" style="padding:.7rem 1rem;">
+          <input class="search-box" id="hist-search" placeholder="🔍 Search history..." oninput="renderHistory()" style="max-width:300px;"/>
+        </div>
+        <div class="history-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date & Time</th>
+                <th>Medicine</th>
+                <th>Qty</th>
+                <th>Dispensed To</th>
+                <th>By</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody">
+              <tr><td colspan="7" class="empty-state">No history yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────── AI ADVISOR ─────────── -->
+    <div class="page" id="page-ai">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🤖 AI Inventory Advisor</div>
+          <div class="page-sub">Powered by Claude — Demand forecasting, shortage detection, procurement recommendations</div>
+        </div>
+      </div>
+      <div class="ai-layout">
+        <!-- Left: Quick Actions -->
+        <div style="display:flex;flex-direction:column;gap:.8rem;">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">⚡ Quick Analysis</span></div>
+            <div class="panel-body" style="display:flex;flex-direction:column;gap:.5rem;">
+              <button class="ai-option-btn" onclick="quickPrompt('full_analysis')">📊 Full Inventory Analysis</button>
+              <button class="ai-option-btn" onclick="quickPrompt('shortage_forecast')">⚠️ Shortage Forecast & Prevention</button>
+              <button class="ai-option-btn" onclick="quickPrompt('procurement')">🛒 Procurement Recommendations</button>
+              <button class="ai-option-btn" onclick="quickPrompt('expiry')">⏰ Expiry Risk Assessment</button>
+              <button class="ai-option-btn" onclick="quickPrompt('distribution')">🏥 Distribution Optimization</button>
+              <button class="ai-option-btn" onclick="quickPrompt('emergency')">🚨 Emergency Preparedness Check</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">📊 Inventory Snapshot</span></div>
+            <div class="panel-body" id="ai-snapshot" style="font-size:.78rem;color:var(--text2);line-height:1.8;">
+              Loading...
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Chat -->
+        <div class="ai-chat-area">
+          <div class="ai-chat-messages" id="ai-messages">
+            <div class="ai-msg">
+              <div class="ai-avatar bot">🤖</div>
+              <div class="ai-bubble bot">
+                Hello! I'm your AI Inventory Advisor powered by Claude. I can analyze your current medicine inventory, forecast demand, detect potential shortages, and provide procurement recommendations.<br/><br/>
+                Enter your Anthropic API key in the sidebar to get started, then click a quick action or type your question below!
+              </div>
+            </div>
+          </div>
+          <div class="ai-input-row">
+            <input class="ai-input" id="ai-input" placeholder="Ask anything about your inventory..." onkeydown="if(event.key==='Enter')sendAiMessage()"/>
+            <button class="btn btn-primary" onclick="sendAiMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ─────────── ADD/EDIT MODAL ─────────── -->
+<div class="modal-overlay" id="med-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">Add Medicine</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Medicine Name *</label>
+          <input class="form-input" id="m-name" placeholder="e.g. Amoxicillin 500mg"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select class="form-input" id="m-category">
+            <option>Antibiotics</option>
+            <option>Vaccines</option>
+            <option>Maintenance</option>
+            <option>Analgesics</option>
+            <option>Vitamins</option>
+            <option>Others</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit *</label>
+          <select class="form-input" id="m-unit">
+            <option>Tablets</option>
+            <option>Capsules</option>
+            <option>Vials</option>
+            <option>Ampules</option>
+            <option>Bottles</option>
+            <option>Sachets</option>
+            <option>mL</option>
+            <option>mg</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Stock *</label>
+          <input class="form-input" id="m-qty" type="number" min="0" placeholder="e.g. 500"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Minimum Stock Level *</label>
+          <input class="form-input" id="m-min" type="number" min="0" placeholder="e.g. 100"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expiry Date *</label>
+          <input class="form-input" id="m-expiry" type="date"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit Price (₱)</label>
+          <input class="form-input" id="m-price" type="number" step="0.01" min="0" placeholder="e.g. 12.50"/>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Supplier / Source</label>
+          <input class="form-input" id="m-supplier" placeholder="e.g. DOH Central Warehouse"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMedicine()">Save Medicine</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="del-modal">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-head">
+      <div class="modal-title">Delete Medicine</div>
+      <button class="modal-close" onclick="closeDelModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.88rem;color:var(--text2);line-height:1.6;">
+        Are you sure you want to delete <strong id="del-name"></strong>? This action cannot be undone and all dispensing records for this medicine will remain in history.
+      </p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeDelModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════
+//  DATA STORE
+// ══════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2,10); }
+
+// If this is a fresh version, wipe all old data (including demo data from previous builds)
+const CURRENT_VERSION = 'v2-clean';
+if (localStorage.getItem('medisys_version') !== CURRENT_VERSION) {
+  localStorage.removeItem('medisys_medicines');
+  localStorage.removeItem('medisys_logs');
+  localStorage.setItem('medisys_version', CURRENT_VERSION);
+}
+
+let medicines = JSON.parse(localStorage.getItem('medisys_medicines') || '[]');
+let dispenseLogs = JSON.parse(localStorage.getItem('medisys_logs') || '[]');
+let editingId = null;
+let deletingId = null;
+let stockChart = null;
+let catChart = null;
+
+function saveData() {
+  localStorage.setItem('medisys_medicines', JSON.stringify(medicines));
+  localStorage.setItem('medisys_logs', JSON.stringify(dispenseLogs));
+}
+
+// ══════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════
+const pageTitles = { dashboard:'Dashboard', inventory:'Medicine Inventory', dispense:'Dispense Medicine', history:'Dispensing History', ai:'AI Advisor' };
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => { if(n.textContent.toLowerCase().includes(id === 'ai' ? 'ai' : id)) n.classList.add('active'); });
+  document.getElementById('topbar-title').textContent = pageTitles[id] || id;
+
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'inventory') renderInventory();
+  if (id === 'dispense') renderDispenseForm();
+  if (id === 'history') renderHistory();
+  if (id === 'ai') renderAiSnapshot();
+}
+
+// ══════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════
+function renderDashboard() {
+  const today = new Date();
+  const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+
+  const low = medicines.filter(m => m.qty < m.minStock);
+  const expiring = medicines.filter(m => m.expiry && new Date(m.expiry) <= in30 && new Date(m.expiry) >= today);
+  const adequate = medicines.filter(m => m.qty >= m.minStock);
+
+  document.getElementById('kpi-total').textContent = medicines.length;
+  document.getElementById('kpi-adequate').textContent = adequate.length;
+  document.getElementById('kpi-low').textContent = low.length;
+  document.getElementById('kpi-expiring').textContent = expiring.length;
+
+  // Alerts panel
+  const alerts = [];
+  low.forEach(m => alerts.push({ type:'red', msg:`<strong>${m.name}</strong> is low stock — ${m.qty} ${m.unit} remaining (min: ${m.minStock})` }));
+  expiring.forEach(m => {
+    const days = Math.ceil((new Date(m.expiry) - today) / 86400000);
+    alerts.push({ type:'yellow', msg:`<strong>${m.name}</strong> expires in <strong>${days} day${days===1?'':'s'}</strong> (${m.expiry})` });
+  });
+
+  const alertsPanel = document.getElementById('alerts-panel');
+  document.getElementById('alert-count-badge').textContent = alerts.length;
+  document.getElementById('badge-inventory').style.display = low.length ? 'inline' : 'none';
+  document.getElementById('badge-inventory').textContent = low.length;
+
+  if (alerts.length === 0) {
+    alertsPanel.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>No active alerts</div>';
+  } else {
+    alertsPanel.innerHTML = alerts.map(a => `
+      <div class="alert-item">
+        <div class="alert-dot ${a.type}"></div>
+        <div>
+          <div class="alert-text">${a.msg}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // Recent dispenses
+  const recent = [...dispenseLogs].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,5);
+  const recentEl = document.getElementById('recent-dispenses');
+  if (recent.length === 0) {
+    recentEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>No dispenses yet</div>';
+  } else {
+    recentEl.innerHTML = recent.map(l => `
+      <div class="recent-row">
+        <div>
+          <div class="recent-name">${l.medicineName}</div>
+          <div class="recent-meta">${l.to} · ${fmtDate(l.date)}</div>
+        </div>
+        <span class="pill pill-blue">−${l.qty}</span>
+      </div>`).join('');
+  }
+
+  document.getElementById('chart-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  renderStockChart();
+  renderCategoryChart();
+}
+
+function renderStockChart() {
+  const ctx = document.getElementById('stockChart').getContext('2d');
+  const sorted = [...medicines].sort((a,b) => (b.qty/b.minStock) - (a.qty/a.minStock)).slice(0, 10);
+  const labels = sorted.map(m => m.name.length > 18 ? m.name.slice(0,18)+'…' : m.name);
+  const stocks = sorted.map(m => m.qty);
+  const mins = sorted.map(m => m.minStock);
+  const colors = sorted.map(m => m.qty < m.minStock ? '#ef4444' : m.qty < m.minStock * 1.5 ? '#f59e0b' : '#10b981');
+
+  if (stockChart) stockChart.destroy();
+  stockChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Current Stock', data: stocks, backgroundColor: colors, borderRadius: 5, borderSkipped: false },
+        { label: 'Min. Stock', data: mins, type: 'line', borderColor: '#6b7280', borderDash: [4,3], pointRadius: 3, borderWidth: 1.5, fill: false, pointBackgroundColor: '#6b7280' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: '#8b95a3', font: { family: 'Sora', size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#5a6475', font: { family: 'Sora', size: 10 } }, grid: { color: '#21293a' } },
+        y: { ticks: { color: '#5a6475', font: { family: 'Sora', size: 10 } }, grid: { color: '#21293a' } }
+      }
+    }
+  });
+}
+
+function renderCategoryChart() {
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+  const cats = {};
+  medicines.forEach(m => { cats[m.category] = (cats[m.category] || 0) + m.qty; });
+  const labels = Object.keys(cats);
+  const data = Object.values(cats);
+  const colors = ['#f472b6','#818cf8','#34d399','#fb923c','#facc15','#94a3b8'];
+
+  if (catChart) catChart.destroy();
+  catChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8b95a3', font: { family: 'Sora', size: 11 }, padding: 12, boxWidth: 12, borderRadius: 4 } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════
+//  INVENTORY
+// ══════════════════════════════════════
+function renderInventory() {
+  const search = (document.getElementById('inv-search')?.value || '').toLowerCase();
+  const cat = document.getElementById('inv-filter-cat')?.value || '';
+  const stockFilter = document.getElementById('inv-filter-stock')?.value || '';
+  const today = new Date();
+  const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+
+  let filtered = medicines.filter(m => {
+    if (search && !m.name.toLowerCase().includes(search) && !m.category.toLowerCase().includes(search) && !(m.supplier||'').toLowerCase().includes(search)) return false;
+    if (cat && m.category !== cat) return false;
+    if (stockFilter === 'low' && m.qty >= m.minStock) return false;
+    if (stockFilter === 'expiring' && !(m.expiry && new Date(m.expiry) <= in30)) return false;
+    if (stockFilter === 'ok' && (m.qty < m.minStock || (m.expiry && new Date(m.expiry) <= in30))) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('inv-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text3);">No medicines match your filters.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(m => {
+    const pct = Math.min(100, Math.round((m.qty / m.minStock) * 100));
+    const expDate = m.expiry ? new Date(m.expiry) : null;
+    const isExpiring = expDate && expDate <= in30;
+    const isLow = m.qty < m.minStock;
+    const barColor = isLow ? '#ef4444' : pct < 150 ? '#f59e0b' : '#10b981';
+
+    let status = '<span class="pill pill-green">Adequate</span>';
+    if (isLow && isExpiring) status = '<span class="pill pill-red">Low + Expiring</span>';
+    else if (isLow) status = '<span class="pill pill-red">Low Stock</span>';
+    else if (isExpiring) status = '<span class="pill pill-yellow">Expiring Soon</span>';
+
+    return `<tr>
+      <td>
+        <div class="td-name">${m.name}</div>
+      </td>
+      <td><span class="pill pill-purple">${m.category}</span></td>
+      <td>
+        <div style="font-weight:600;color:${isLow ? 'var(--red)' : 'var(--text)'};">${m.qty.toLocaleString()} / ${m.minStock.toLocaleString()}</div>
+        <div class="stock-bar"><div class="stock-bar-fill" style="width:${Math.min(pct,100)}%;background:${barColor};"></div></div>
+      </td>
+      <td class="text-sm">${m.unit}</td>
+      <td class="${isExpiring ? 'expiry-warn' : 'expiry-ok'}">${m.expiry || '—'}</td>
+      <td class="text-sm">${m.supplier || '—'}</td>
+      <td class="text-sm">₱${Number(m.price || 0).toFixed(2)}</td>
+      <td>${status}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${m.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="openDelModal('${m.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// Modal
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add Medicine';
+  ['m-name','m-qty','m-min','m-expiry','m-price','m-supplier'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('m-category').value = 'Antibiotics';
+  document.getElementById('m-unit').value = 'Tablets';
+  document.getElementById('med-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const m = medicines.find(x => x.id === id);
+  if (!m) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit Medicine';
+  document.getElementById('m-name').value = m.name;
+  document.getElementById('m-category').value = m.category;
+  document.getElementById('m-unit').value = m.unit;
+  document.getElementById('m-qty').value = m.qty;
+  document.getElementById('m-min').value = m.minStock;
+  document.getElementById('m-expiry').value = m.expiry || '';
+  document.getElementById('m-price').value = m.price || '';
+  document.getElementById('m-supplier').value = m.supplier || '';
+  document.getElementById('med-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('med-modal').classList.remove('open'); }
+
+function saveMedicine() {
+  const name = document.getElementById('m-name').value.trim();
+  const qty = parseInt(document.getElementById('m-qty').value);
+  const min = parseInt(document.getElementById('m-min').value);
+  const expiry = document.getElementById('m-expiry').value;
+  if (!name) { toast('Medicine name is required.', 'error'); return; }
+  if (isNaN(qty) || qty < 0) { toast('Enter a valid stock quantity.', 'error'); return; }
+  if (isNaN(min) || min < 0) { toast('Enter a valid minimum stock level.', 'error'); return; }
+  if (!expiry) { toast('Expiry date is required.', 'error'); return; }
+
+  const data = {
+    name,
+    category: document.getElementById('m-category').value,
+    unit: document.getElementById('m-unit').value,
+    qty, minStock: min, expiry,
+    price: parseFloat(document.getElementById('m-price').value) || 0,
+    supplier: document.getElementById('m-supplier').value.trim(),
+  };
+
+  if (editingId) {
+    const i = medicines.findIndex(m => m.id === editingId);
+    medicines[i] = { ...medicines[i], ...data };
+    toast('Medicine updated successfully!', 'success');
+  } else {
+    medicines.push({ id: uid(), ...data, added: new Date().toISOString() });
+    toast('Medicine added to inventory!', 'success');
+  }
+  saveData();
+  closeModal();
+  renderInventory();
+}
+
+function openDelModal(id) {
+  deletingId = id;
+  const m = medicines.find(x => x.id === id);
+  document.getElementById('del-name').textContent = m?.name;
+  document.getElementById('del-modal').classList.add('open');
+}
+function closeDelModal() { document.getElementById('del-modal').classList.remove('open'); deletingId = null; }
+function confirmDelete() {
+  medicines = medicines.filter(m => m.id !== deletingId);
+  saveData(); closeDelModal(); renderInventory();
+  toast('Medicine deleted.', 'info');
+}
+
+// ══════════════════════════════════════
+//  DISPENSE
+// ══════════════════════════════════════
+function renderDispenseForm() {
+  const sel = document.getElementById('disp-medicine');
+  sel.innerHTML = '<option value="">-- Select Medicine --</option>';
+  medicines.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = `${m.name} (${m.qty} ${m.unit} available)`;
+    sel.appendChild(opt);
+  });
+  renderTodayDispenses();
+}
+
+function updateDispStock() {
+  const id = document.getElementById('disp-medicine').value;
+  const info = document.getElementById('disp-stock-info');
+  if (!id) { info.style.display = 'none'; return; }
+  const m = medicines.find(x => x.id === id);
+  if (!m) { info.style.display = 'none'; return; }
+  info.style.display = 'block';
+  document.getElementById('disp-cur-stock').textContent = `${m.qty} ${m.unit}`;
+  document.getElementById('disp-cur-stock').style.color = m.qty < m.minStock ? 'var(--red)' : 'var(--green)';
+  document.getElementById('disp-min-stock').textContent = `${m.minStock} ${m.unit}`;
+  document.getElementById('disp-expiry').textContent = m.expiry || '—';
+}
+
+function submitDispense() {
+  const medId = document.getElementById('disp-medicine').value;
+  const qty = parseInt(document.getElementById('disp-qty').value);
+  const to = document.getElementById('disp-to').value.trim();
+  if (!medId) { toast('Select a medicine.', 'error'); return; }
+  if (isNaN(qty) || qty <= 0) { toast('Enter a valid quantity.', 'error'); return; }
+  if (!to) { toast('Enter patient / ward name.', 'error'); return; }
+
+  const m = medicines.find(x => x.id === medId);
+  if (qty > m.qty) { toast(`Insufficient stock. Only ${m.qty} ${m.unit} available.`, 'error'); return; }
+
+  m.qty -= qty;
+  const log = {
+    id: uid(), medicineId: medId, medicineName: m.name,
+    qty, to, by: document.getElementById('disp-by').value.trim() || 'Unknown',
+    notes: document.getElementById('disp-notes').value.trim(),
+    date: new Date().toISOString()
+  };
+  dispenseLogs.push(log);
+  saveData();
+
+  // Reset
+  ['disp-medicine','disp-qty','disp-to','disp-by','disp-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('disp-stock-info').style.display = 'none';
+  renderDispenseForm();
+  toast(`✅ Dispensed ${qty} ${m.unit} of ${m.name}`, 'success');
+}
+
+function renderTodayDispenses() {
+  const today = new Date().toDateString();
+  const todayLogs = dispenseLogs.filter(l => new Date(l.date).toDateString() === today).reverse();
+  const tbody = document.getElementById('today-dispenses');
+  if (todayLogs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--text3);">No dispenses today</td></tr>';
+    return;
+  }
+  tbody.innerHTML = todayLogs.map(l => `<tr>
+    <td class="td-name">${l.medicineName}</td>
+    <td><span class="pill pill-blue">${l.qty}</span></td>
+    <td>${l.to}</td>
+    <td class="text-sm">${l.by}</td>
+    <td class="text-sm" style="font-family:var(--mono);">${new Date(l.date).toLocaleTimeString()}</td>
+  </tr>`).join('');
+}
+
+// ══════════════════════════════════════
+//  HISTORY
+// ══════════════════════════════════════
+function renderHistory() {
+  const search = (document.getElementById('hist-search')?.value || '').toLowerCase();
+  let logs = [...dispenseLogs].reverse();
+  if (search) logs = logs.filter(l =>
+    l.medicineName.toLowerCase().includes(search) ||
+    l.to.toLowerCase().includes(search) ||
+    (l.by||'').toLowerCase().includes(search)
+  );
+
+  const tbody = document.getElementById('hist-tbody');
+  if (logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3);">No dispensing records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logs.map((l, i) => `<tr>
+    <td class="text-sm" style="color:var(--text3);font-family:var(--mono);">${logs.length - i}</td>
+    <td style="font-family:var(--mono);font-size:.75rem;">${fmtDateFull(l.date)}</td>
+    <td class="td-name">${l.medicineName}</td>
+    <td><span class="pill pill-blue">${l.qty}</span></td>
+    <td>${l.to}</td>
+    <td class="text-sm">${l.by || '—'}</td>
+    <td class="text-sm" style="color:var(--text3);">${l.notes || '—'}</td>
+  </tr>`).join('');
+}
+
+function exportCSV() {
+  const headers = ['Date','Medicine','Quantity','Dispensed To','By','Notes'];
+  const rows = [...dispenseLogs].reverse().map(l => [
+    fmtDateFull(l.date), l.medicineName, l.qty, l.to, l.by || '', l.notes || ''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `medisys_history_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('History exported as CSV!', 'success');
+}
+
+// ══════════════════════════════════════
+//  AI ADVISOR
+// ══════════════════════════════════════
+function renderAiSnapshot() {
+  const today = new Date();
+  const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+  const low = medicines.filter(m => m.qty < m.minStock);
+  const expiring = medicines.filter(m => m.expiry && new Date(m.expiry) <= in30);
+  const totalValue = medicines.reduce((s,m) => s + (m.qty * (m.price||0)), 0);
+
+  document.getElementById('ai-snapshot').innerHTML = `
+    <div style="display:grid;gap:.5rem;">
+      <div>📦 <strong>${medicines.length}</strong> medicines in inventory</div>
+      <div>⚠️ <strong style="color:var(--red)">${low.length}</strong> items with low stock</div>
+      <div>⏰ <strong style="color:var(--yellow)">${expiring.length}</strong> items expiring within 30 days</div>
+      <div>💉 <strong>${dispenseLogs.length}</strong> total dispense records</div>
+      <div>💰 Total stock value: <strong>₱${totalValue.toLocaleString('en-PH',{minimumFractionDigits:2})}</strong></div>
+    </div>
+  `;
+}
+
+function buildInventoryContext() {
+  const today = new Date();
+  const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+  const meds = medicines.map(m => {
+    const daysToExpiry = m.expiry ? Math.ceil((new Date(m.expiry) - today) / 86400000) : null;
+    return {
+      name: m.name, category: m.category, qty: m.qty, minStock: m.minStock,
+      unit: m.unit, expiryDate: m.expiry, daysToExpiry,
+      isLowStock: m.qty < m.minStock, expiringWithin30Days: daysToExpiry !== null && daysToExpiry <= 30,
+      supplier: m.supplier, unitPrice: m.price,
+      stockRatio: m.minStock > 0 ? (m.qty / m.minStock).toFixed(2) : 'N/A'
+    };
+  });
+  const recentLogs = [...dispenseLogs].reverse().slice(0,10).map(l => ({
+    medicine: l.medicineName, qty: l.qty, to: l.to, date: l.date.slice(0,10)
+  }));
+  return `
+CURRENT INVENTORY (${medicines.length} medicines):
+${JSON.stringify(meds, null, 2)}
+
+RECENT DISPENSE LOGS (last 10):
+${JSON.stringify(recentLogs, null, 2)}
+
+Today's date: ${today.toISOString().slice(0,10)}
+Health center type: Philippine Public Health Center / RHU
+  `.trim();
+}
+
+const quickPrompts = {
+  full_analysis: 'Please perform a comprehensive analysis of our current medicine inventory. Identify critical issues, near-term risks, and overall inventory health. Give actionable insights in a structured format.',
+  shortage_forecast: 'Based on our current stock levels, minimum thresholds, and recent dispense patterns, forecast which medicines are at risk of stock-out in the next 30-60 days. Prioritize by urgency and suggest preventive actions.',
+  procurement: 'Generate a prioritized procurement recommendation list based on current stock levels, minimum requirements, and expiry dates. Include suggested reorder quantities and urgency levels.',
+  expiry: 'Conduct an expiry risk assessment on our current inventory. Identify medicines at risk of expiring soon and recommend actions to minimize waste (e.g., prioritize dispensing, redistribution, return to supplier).',
+  distribution: 'Analyze our dispensing logs and current stock. Recommend how we should prioritize distribution of our current stock to ensure equitable access while preventing shortages.',
+  emergency: 'Assess our inventory\'s readiness for emergency situations such as disease outbreaks or natural disasters. Identify gaps and recommend what to stockpile or procure as buffer stock.'
+};
+
+async function quickPrompt(type) {
+  const prompt = quickPrompts[type];
+  await sendToAI(prompt);
+}
+
+async function sendAiMessage() {
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  await sendToAI(msg);
+}
+
+async function sendToAI(userMessage) {
+  const apiKey = document.getElementById('api-key-input').value.trim();
+  if (!apiKey) { toast('Please enter your Anthropic API key in the sidebar.', 'error'); return; }
+
+  // Add user message
+  addAiMessage('user', userMessage);
+  const typingEl = addTyping();
+
+  const systemPrompt = `You are MediSys AI, an expert medical inventory advisor for Philippine public health centers. 
+You specialize in medicine supply chain management, shortage prevention, and procurement for resource-limited settings.
+You understand the Philippine healthcare context including DOH, UHC, RHU, and Barangay Health Centers.
+Be concise, practical, and actionable. Use bullet points and structure your responses clearly.
+Always prioritize patient safety and medicine availability.
+
+Here is the current inventory data:
+${buildInventoryContext()}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMessage }]
+      })
+    });
+    const data = await response.json();
+    typingEl.remove();
+    if (data.content && data.content[0]) {
+      addAiMessage('bot', data.content[0].text);
+    } else {
+      addAiMessage('bot', '⚠️ Error: ' + (data.error?.message || 'Unexpected response. Check your API key.'));
+    }
+  } catch (e) {
+    typingEl.remove();
+    addAiMessage('bot', '⚠️ Network error. Please check your connection and API key.');
+  }
+}
+
+function addAiMessage(role, text) {
+  const container = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+  div.innerHTML = `
+    <div class="ai-avatar ${role}">${role === 'bot' ? '🤖' : '👤'}</div>
+    <div class="ai-bubble ${role}">${text.replace(/\n/g, '<br/>')}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const container = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = 'ai-msg';
+  div.innerHTML = `
+    <div class="ai-avatar bot">🤖</div>
+    <div class="ai-bubble bot"><div class="ai-typing"><span></span><span></span><span></span></div></div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+// ══════════════════════════════════════
+//  API KEY
+// ══════════════════════════════════════
+function checkApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const status = document.getElementById('api-status');
+  if (key.startsWith('sk-ant-')) {
+    status.textContent = '✓ API key set — AI features enabled';
+    status.className = 'api-status ok';
+  } else if (key.length > 5) {
+    status.textContent = '⚠ Key format looks incorrect';
+    status.className = 'api-status';
+  } else {
+    status.textContent = '⬡ Not set — AI features disabled';
+    status.className = 'api-status';
+  }
+}
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]}</span> ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ══════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
+}
+function fmtDateFull(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString('en-PH', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+// Live clock
+function updateClock() {
+  document.getElementById('live-time').textContent = new Date().toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Init
+renderDashboard();
+</script>
+</body>
+</html>
